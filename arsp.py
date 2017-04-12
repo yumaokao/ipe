@@ -5,6 +5,7 @@
 import re
 import urllib
 import requests
+from lxml import etree
 from lxml.html import document_fromstring
 
 
@@ -20,8 +21,8 @@ def main():
                'Accept-Language': 'zh-TW,zh;q=0.8,en-US;q=0.6,en;q=0.4',
                'Cookie': COOKIE}
 
-    payload = {'currentPage': '2',
-               'pageSize': '100',
+    payload = {'currentPage': '',
+               'pageSize': '',
                'sortCondition': '',
                'specCode': '',
                'isSearch': '1',
@@ -43,10 +44,37 @@ def main():
                'academicExpertiseFullSearch': '',
                'code_1': ''}
 
-    r = requests.post("http://arsp.most.gov.tw/NSCWebFront/modules/talentSearch/talentSearch.do?action=initSearchList&LANG=chi", headers=headers, data=payload)
-    print(r.text)
+    url = "http://arsp.most.gov.tw/NSCWebFront/modules/talentSearch/talentSearch.do?action=initSearchList&LANG=chi"
+    r = requests.post(url, headers=headers, data=payload)
     text = urllib.parse.unquote(r.text)
-    # print(text)
+    m = re.search("共<em>(\d+)</em>筆資料│", text)
+    if m is None:
+        print('not found count')
+        return
+    pages = int(int(m.group(1)) / 100)
+
+    for p in range(1, pages + 2):
+        payload['currentPage'] = str(p)
+        r = requests.post(url, headers=headers, data=payload)
+        text = urllib.parse.unquote(r.text)
+        # print(text)
+        root = document_fromstring(text)
+        div = root.find('.//div[@class="c30Tblist2"]')
+        table = div[0]
+        for tr in table.iterfind('.//tr'):
+            # print(etree.tostring(tr, encoding='unicode'))
+            tds = tr.findall('.//td')
+            if len(tds) != 7:
+                continue
+            # print(etree.tostring(tr, encoding='unicode'))
+
+            adata = []
+            name = tds[0].find('.//a')
+            adata.extend(name.xpath('.//text()'))
+            adata.append(name.get('href'))
+            print(adata)
+
+        break
 
 
 if __name__ == "__main__":
