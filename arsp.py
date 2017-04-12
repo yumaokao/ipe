@@ -5,6 +5,7 @@
 import re
 import urllib
 import requests
+import pandas as pd
 from lxml import etree
 from lxml.html import document_fromstring
 
@@ -22,7 +23,7 @@ def main():
                'Cookie': COOKIE}
 
     payload = {'currentPage': '',
-               'pageSize': '',
+               'pageSize': '100',
                'sortCondition': '',
                'specCode': '',
                'isSearch': '1',
@@ -53,6 +54,7 @@ def main():
         return
     pages = int(int(m.group(1)) / 100)
 
+    data = []
     for p in range(1, pages + 2):
         payload['currentPage'] = str(p)
         r = requests.post(url, headers=headers, data=payload)
@@ -69,12 +71,22 @@ def main():
             # print(etree.tostring(tr, encoding='unicode'))
 
             adata = []
+            # name
             name = tds[0].find('.//a')
             adata.extend(name.xpath('.//text()'))
             adata.append(name.get('href'))
-            print(adata)
 
-        break
+            # dep
+            adata.append(tds[1].text.strip())
+            # pos
+            adata.append(tds[2].text.strip())
+            # tel
+            adata.append(tds[3].text.strip())
+
+            data.append(adata)
+
+    df = pd.DataFrame(data, columns=['cname', 'ename', 'link', 'dep', 'pos', 'contact'])
+    df.to_csv('arsp.csv')
 
 
 if __name__ == "__main__":
