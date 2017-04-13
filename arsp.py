@@ -23,7 +23,7 @@ def main():
                'Cookie': COOKIE}
 
     payload = {'currentPage': '',
-               'pageSize': '100',
+               'pageSize': '',
                'sortCondition': '',
                'specCode': '',
                'isSearch': '1',
@@ -45,8 +45,9 @@ def main():
                'academicExpertiseFullSearch': '',
                'code_1': ''}
 
-    url = "http://arsp.most.gov.tw/NSCWebFront/modules/talentSearch/talentSearch.do?action=initSearchList&LANG=chi"
-    r = requests.post(url, headers=headers, data=payload)
+    url = "http://arsp.most.gov.tw/NSCWebFront/modules/talentSearch/"
+    url_search = url + "talentSearch.do?action=initSearchList&LANG=chi"
+    r = requests.post(url + "talentSearch.do?action=initSearchList&LANG=chi", headers=headers, data=payload)
     text = urllib.parse.unquote(r.text)
     m = re.search("共<em>(\d+)</em>筆資料│", text)
     if m is None:
@@ -57,7 +58,7 @@ def main():
     data = []
     for p in range(1, pages + 2):
         payload['currentPage'] = str(p)
-        r = requests.post(url, headers=headers, data=payload)
+        r = requests.post(url_search, headers=headers, data=payload)
         text = urllib.parse.unquote(r.text)
         # print(text)
         root = document_fromstring(text)
@@ -74,7 +75,12 @@ def main():
             # name
             name = tds[0].find('.//a')
             adata.extend(name.xpath('.//text()'))
-            adata.append(name.get('href'))
+
+            # rsno
+            # adata.append(name.get('href'))
+            qs = urllib.parse.urlparse(name.get('href')).query
+            rsno = urllib.parse.parse_qs(qs)['rsNo'][0]
+            adata.append(rsno)
 
             # dep
             adata.append(tds[1].text.strip())
@@ -83,10 +89,15 @@ def main():
             # tel
             adata.append(tds[3].text.strip())
 
+            # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
+
+            print(adata)
             data.append(adata)
 
-    df = pd.DataFrame(data, columns=['cname', 'ename', 'link', 'dep', 'pos', 'contact'])
-    df.to_csv('arsp.csv')
+        break
+
+    # df = pd.DataFrame(data, columns=['cname', 'ename', 'link', 'dep', 'pos', 'contact'])
+    # df.to_csv('arsp.csv')
 
 
 if __name__ == "__main__":
