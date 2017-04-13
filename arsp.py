@@ -89,12 +89,18 @@ def main():
             # tel
             adata.append(tds[3].text.strip())
 
-            # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
-
             print(adata)
             data.append(adata)
 
+
         break
+
+    for rs in data:
+        # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
+        rsno = rs[2]
+        r = requests.get('{}talentSearch.do?action=initRsm02&rsNo={}'.format(url, rsno), headers=headers, data=payload)
+        print(r.status_code)
+        # print(r.text)
 
     # df = pd.DataFrame(data, columns=['cname', 'ename', 'link', 'dep', 'pos', 'contact'])
     # df.to_csv('arsp.csv')
