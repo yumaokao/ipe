@@ -107,32 +107,56 @@ class RS:
 
     def get_detail(self):
         print(self.info)
-        self.rsm02()
-        print(self.detail['主要學歷'])
+        # self.basic()
+        # self.rsm02()
+        # self.rsm03()
+        self.rsm05()
 
-    def rsm02(self):
+    def _base_get_table(self, action, key, cols, divcls):
         # 主要學歷
         # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
-        url_rsm02 = '{}talentSearch.do?action=initRsm02&rsNo={}'.format(self.url, self.rsno)
-        r = requests.get(url_rsm02, headers=self.headers)
+        url_action = '{}talentSearch.do?action={}&rsNo={}'.format(self.url, action, self.rsno)
+        r = requests.get(url_action, headers=self.headers)
         text = urllib.parse.unquote(r.text)
         root = document_fromstring(text)
-        div = root.find('.//div[@class="c30Tblist2"]')
+        div = root.find('.//div[@class="{}"]'.format(divcls))
         if div is None:
-            self.detail['主要學歷'] = '不公開'
+            self.detail[key] = '不公開'
             return
 
         # print(etree.tostring(div, encoding='unicode'))
         table = div[0]
-        rsm02 = []
+        dlist = []
         for tr in table.iterfind('.//tr'):
             tds = tr.findall('.//td')
-            if len(tds) != 5:
+            if len(tds) != cols:
                 continue
             # name
             name = tds[0].find('.//a')
-            rsm02.append((list(map(lambda td: td.text.strip(), tds))))
-        self.detail['主要學歷'] = rsm02
+            dlist.append((list(map(lambda td: td.text.strip(), tds))))
+        self.detail[key] = dlist
+
+    def basic(self):
+        # 基本資料
+        # talentSearch.do?action=initBasic&rsNo=fe7ff544a15f41e585199d39c7c4177c
+        self._base_get_table('initBasic', '基本資料', 1, 'c30Tblist')
+        print(self.detail['基本資料'])
+
+    def rsm02(self):
+        # 主要學歷
+        # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
+        self._base_get_table('initRsm02', '主要學歷', 5, 'c30Tblist2')
+
+    def rsm03(self):
+        # 相關經歷
+        # talentSearch.do?action=initRsm03&rsNo=fe7ff544a15f41e585199d39c7c4177c
+        self._base_get_table('initRsm03', '相關經歷', 4, 'c30Tblist2')
+
+    def rsm05(self):
+        # 著作目錄
+        # talentSearch.do?action=initRsm05&rsNo=fe7ff544a15f41e585199d39c7c4177c
+        self._base_get_table('initRsm05', '著作目錄', 5, 'c30Tblist2')
+        print(self.detail['著作目錄'])
 
 
 def main():
