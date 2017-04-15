@@ -3,9 +3,10 @@
 # vim:fileencoding=UTF-8:ts=4:sw=4:sta:et:sts=4:ai
 
 import re
+import csv
 import urllib
 import requests
-from lxml import etree
+# from lxml import etree
 from lxml.html import document_fromstring
 
 
@@ -21,7 +22,7 @@ class RS:
                'Cookie': COOKIE}
 
     payload = {'currentPage': '',
-               'pageSize': '',
+               'pageSize': '100',
                'sortCondition': '',
                'specCode': '',
                'isSearch': '1',
@@ -91,26 +92,27 @@ class RS:
                 # print(adata)
                 data.append(adata)
 
-            break
+            # break
 
         rss = list(map(lambda r: RS(r), data))
         return rss
-
 
     def __init__(self, info):
         self.info = info
         self.rsno = info[2]
         self.detail = {}
+        self.detail['info'] = info
 
     def __repr__(self):
         return str(self.info)
 
     def get_detail(self):
-        # print(self.info)
+        print(self.info)
         self.basic()
         self.rsm02()
         self.rsm03()
         self.rsm05()
+        return self.detail
 
     def _base_get_table(self, action, key, cols, divcls):
         # 主要學歷
@@ -132,7 +134,7 @@ class RS:
             if len(tds) != cols:
                 continue
             if cols > 1:
-                dlist.append((list(map(lambda td: td.text.strip(), tds))))
+                dlist.append((list(map(lambda td: td.text.strip() if td.text is not None else '', tds))))
             else:
                 dlist.append(tds[0].text.strip())
 
@@ -160,37 +162,27 @@ class RS:
         self._base_get_table('initRsm05', '著作目錄', 5, 'c30Tblist2')
         # print(self.detail['著作目錄'])
 
-    def to_csv(self):
-        pass
+
+def save_to_csv(details):
+    with open('arsp.csv', 'w') as csvf:
+        csvw = csv.writer(csvf, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        for i, rs in enumerate(details):
+            csvw.writerow('')
+            csvw.writerow([i + 1] + rs['info'])
+            for key in ['基本資料', '主要學歷', '相關經歷', '著作目錄']:
+                csvw.writerow([key])
+                if key == '基本資料':
+                    csvw.writerow(rs[key])
+                else:
+                    for r in rs[key]:
+                        csvw.writerow(r)
 
 
 def main():
-
     rss = RS.get_all_researchers()
-    print(len(rss))
-    list(map(lambda r: r.get_detail(), rss))
+    details = list(map(lambda r: r.get_detail(), rss))
+    save_to_csv(details)
 
-    '''
-    for rs in data:
-        rsno = rs[2]
-
-        # 主要學歷
-        # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
-        r = requests.get('{}talentSearch.do?action=initRsm02&rsNo={}'.format(url, rsno), headers=headers, data=payload)
-        text = urllib.parse.unquote(r.text)
-        root = document_fromstring(text)
-        div = root.find('.//div[@class="c30Tblist2"]')
-        print(rs)
-        if div is None:
-            print('不公開')
-        else:
-            print(etree.tostring(div, encoding='unicode'))
-
-        table = div[0]
-
-    # df = pd.DataFrame(data, columns=['cname', 'ename', 'link', 'dep', 'pos', 'contact'])
-    # df.to_csv('arsp.csv')
-    '''
 
 if __name__ == "__main__":
     main()
