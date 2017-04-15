@@ -106,10 +106,10 @@ class RS:
         return str(self.info)
 
     def get_detail(self):
-        print(self.info)
-        # self.basic()
-        # self.rsm02()
-        # self.rsm03()
+        # print(self.info)
+        self.basic()
+        self.rsm02()
+        self.rsm03()
         self.rsm05()
 
     def _base_get_table(self, action, key, cols, divcls):
@@ -131,16 +131,18 @@ class RS:
             tds = tr.findall('.//td')
             if len(tds) != cols:
                 continue
-            # name
-            name = tds[0].find('.//a')
-            dlist.append((list(map(lambda td: td.text.strip(), tds))))
+            if cols > 1:
+                dlist.append((list(map(lambda td: td.text.strip(), tds))))
+            else:
+                dlist.append(tds[0].text.strip())
+
         self.detail[key] = dlist
 
     def basic(self):
         # 基本資料
         # talentSearch.do?action=initBasic&rsNo=fe7ff544a15f41e585199d39c7c4177c
         self._base_get_table('initBasic', '基本資料', 1, 'c30Tblist')
-        print(self.detail['基本資料'])
+        # print(self.detail['基本資料'])
 
     def rsm02(self):
         # 主要學歷
@@ -156,7 +158,10 @@ class RS:
         # 著作目錄
         # talentSearch.do?action=initRsm05&rsNo=fe7ff544a15f41e585199d39c7c4177c
         self._base_get_table('initRsm05', '著作目錄', 5, 'c30Tblist2')
-        print(self.detail['著作目錄'])
+        # print(self.detail['著作目錄'])
+
+    def to_csv(self):
+        pass
 
 
 def main():
