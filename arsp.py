@@ -5,12 +5,12 @@
 import re
 import urllib
 import requests
-import pandas as pd
 from lxml import etree
 from lxml.html import document_fromstring
 
 
 class RS:
+    url = "http://arsp.most.gov.tw/NSCWebFront/modules/talentSearch/"
     COOKIE = 'JSESSIONID=9D08CD5044B57DB94723D285AF217184; currentUserLocale=zh_TW; _ga=GA1.3.124500067.1491977542'
     headers = {'Origin': 'http://arsp.most.gov.tw',
                'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.110 Safari/537.36',
@@ -45,8 +45,7 @@ class RS:
 
     @classmethod
     def get_all_researchers(cls):
-        url = "http://arsp.most.gov.tw/NSCWebFront/modules/talentSearch/"
-        url_search = url + "talentSearch.do?action=initSearchList&LANG=chi"
+        url_search = cls.url + "talentSearch.do?action=initSearchList&LANG=chi"
         r = requests.post(url_search, headers=cls.headers, data=cls.payload)
         text = urllib.parse.unquote(r.text)
         m = re.search("共<em>(\d+)</em>筆資料│", text)
@@ -100,16 +99,47 @@ class RS:
 
     def __init__(self, info):
         self.info = info
+        self.rsno = info[2]
+        self.detail = {}
 
     def __repr__(self):
         return str(self.info)
+
+    def get_detail(self):
+        print(self.info)
+        self.rsm02()
+        print(self.detail['主要學歷'])
+
+    def rsm02(self):
+        # 主要學歷
+        # talentSearch.do?action=initRsm02&rsNo=fe7ff544a15f41e585199d39c7c4177c
+        url_rsm02 = '{}talentSearch.do?action=initRsm02&rsNo={}'.format(self.url, self.rsno)
+        r = requests.get(url_rsm02, headers=self.headers)
+        text = urllib.parse.unquote(r.text)
+        root = document_fromstring(text)
+        div = root.find('.//div[@class="c30Tblist2"]')
+        if div is None:
+            self.detail['主要學歷'] = '不公開'
+            return
+
+        # print(etree.tostring(div, encoding='unicode'))
+        table = div[0]
+        rsm02 = []
+        for tr in table.iterfind('.//tr'):
+            tds = tr.findall('.//td')
+            if len(tds) != 5:
+                continue
+            # name
+            name = tds[0].find('.//a')
+            rsm02.append((list(map(lambda td: td.text.strip(), tds))))
+        self.detail['主要學歷'] = rsm02
 
 
 def main():
 
     rss = RS.get_all_researchers()
     print(len(rss))
-    list(map(lambda r: print(r), rss))
+    list(map(lambda r: r.get_detail(), rss))
 
     '''
     for rs in data:
